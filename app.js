@@ -22,6 +22,9 @@ let serverObj =  http.createServer(function(req,res){
 		case "/cancel":
 			cancel(urlObj.query,res);
 			break;
+                case "/check":
+                     check(urlObj.query,res);
+                        break;
 		default:
 			error(res,404,"pathname unknown");
 
@@ -41,7 +44,60 @@ function schedule(qObj,res) {
  
 }
 
-function cancel(qObj) {
+function SchedulingAppointment(qObj,res) {
+          if (availableTimes[qObj.day].some(time => time == qObj.time)){
+          opentimes[qObj.day] = availableTimes[qObj.day].filter(time => time !== qObj.time);
+         
+
+          const reserve = {
+              name: qObj.name,
+              day: qObj.day,
+              time: qObj.time};
+          appointments.push(reserve);
+   
+          res.writeHead(200, {'content-type': 'text/plain'});
+          res.write("reserved");
+          res.end();
+        }else{
+           error(res,400, "timeslot Already taken");
+        }
+}
+
+
+function cancel(qObj,res) {
+          const index = appointments.findIndex( appt => appt.name === qObj.name && appt.day === qObj.day && appt.time === qObj.time);
+
+         if (index !== -1) {
+           const canceledAppt = appointments.splice(index,1);
+         if (availableTimes[canceledAppt.day]) {
+             availableTimes[canceledAppt.day].push(canceledAppt.time);
+             availableTimes[canceledAppt.day].sort();
+         }
+
+          
+           res.writeHead(200, {'Content-type': 'text/plain'});
+           res.write("Appointment has been canceled")
+           res.end();
+         }else{ 
+            res.writeHead(400, {'content-type': 'text/plain'});
+            res.write('Appointment not found');
+            res.end();
+         }
+}
+
+function check(qObj,res){
+          if (availableTimes[qObj.day] && availableTimes[qObj.day].includes(qObj.time))
+           {
+                res.writeHead(200,{'content-type':'text/plain'});
+                res.write("available");
+                res.end();
+        
+             }else{
+                res.writeHead(200,{"content-Type": "text/plain"});
+                res.write("Not available");
+                res.end();
+             }
+
 }
 
 function error(response,status,message) {
