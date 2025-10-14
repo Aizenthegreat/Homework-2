@@ -1,5 +1,8 @@
 const http = require('http');
+const fs = require('fs');
 const url = require('url');
+const path = require('path');
+
 
 const availableTimes = {
     Monday: ["1:00", "1:30", "2:00", "2:30", "3:00", "3:30", "4:00", "4:30"],
@@ -16,6 +19,9 @@ let serverObj =  http.createServer(function(req,res){
 	console.log(req.url);
 	let urlObj = url.parse(req.url,true);
 	switch (urlObj.pathname) {
+                case "/":
+                        sendFile(req,"/index.html", res);
+                        break;
 		case "/schedule":
 			schedule(urlObj.query,res);
 			break;
@@ -26,7 +32,8 @@ let serverObj =  http.createServer(function(req,res){
                      check(urlObj.query,res);
                         break;
 		default:
-			error(res,404,"pathname unknown");
+			sendFile(req,urlObj.pathname,res);
+                        break;
 
 	}
 });
@@ -85,6 +92,39 @@ function cancel(qObj,res) {
          }
 }
 
+
+
+function sendFile(req,filePath,res){
+         fs.readFile('./public_html'+filePath,(err,data) => {
+            if (err) {
+               console.log(err);
+               Respond(res, 404, 'text/html', '404 file not found');
+              
+            } else{
+               const ext = path.extname(filePath);
+               let contentType = 'text/plain';
+               if (ext === '.html') contentType = 'text/html';
+               else if (ext === '.css') contentType = 'text/css';
+               else if (ext === '.js') contentType = 'text/javascript';
+               else if (ext === '.png') contentType = 'image/png';
+               else if (ext === '.jpg') contentType = 'image/jpg';
+               else if (ext === '.gif') contentType = 'image/gif';
+               else if (ext === '.json') contentType = 'application/json';
+               Respond(res, 200, contentType, data);
+            }
+
+         });
+}
+
+function Respond(res, statusCode, contentType, data){
+         res.writeHead(statusCode, {'content-Type': contentType});
+         res.end(data);
+}
+
+;
+
+
+
 function check(qObj,res){
           if (availableTimes[qObj.day] && availableTimes[qObj.day].includes(qObj.time))
            {
@@ -108,3 +148,4 @@ function error(response,status,message) {
 }
 
 serverObj.listen(80,function(){console.log("listening on port 80")});
+
